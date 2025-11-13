@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文字列ペアジェネレーター</title>
+    <title>拡張文字列ペアジェネレーター</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,9 +16,16 @@
             white-space: pre-wrap; /* 改行を保持 */
             background-color: #f9f9f9;
         }
-        input[type="number"] {
-            padding: 5px;
+        input[type="text"], input[type="number"] {
+            padding: 8px;
             margin-right: 10px;
+            width: 90%; /* 文字列入力用 */
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        input[type="number"] {
+            width: 100px; /* 文字数入力用 */
+            text-align: right;
         }
         button {
             padding: 8px 15px;
@@ -31,53 +38,75 @@
         button:hover {
             background-color: #0056b3;
         }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
     <h1>文字列ペアジェネレーター</h1>
 
-    <p>生成したい連続ペアの文字数を入力してください (例: 2)。</p>
-
-    <div>
-        <input type="number" id="pairLength" value="2" min="1">
-        <button onclick="generatePairs()">ペアを生成</button>
+    <div class="input-group">
+        <label for="baseString">1. 元の文字列を入力してください:</label>
+        <input type="text" id="baseString" value="qwertyuiopasdfghjklzxcvbnm">
     </div>
+
+    <div class="input-group">
+        <label for="pairLength">2. 生成したい連続ペアの文字数を入力してください (例: 2):</label>
+        <input type="number" id="pairLength" value="2" min="1">
+    </div>
+
+    <button onclick="generatePairs()">ペアを生成</button>
+
+    ---
 
     <h2>結果</h2>
     <div id="output"></div>
 
     <script>
-        // 元となる文字列
-        const BASE_STRING = "qwertyuiopasdfghjklzxcvbnm";
         const outputDiv = document.getElementById('output');
 
         function generatePairs() {
+            // ユーザーが入力した元の文字列を取得
+            const BASE_STRING = document.getElementById('baseString').value.trim();
+            
             // 入力値を取得し、数値に変換
             const pairLengthInput = document.getElementById('pairLength');
             const N = parseInt(pairLengthInput.value, 10);
 
-            // 入力チェック
-            if (isNaN(N) || N < 1) {
-                outputDiv.textContent = "⚠️ 有効な正の整数を入力してください。";
+            // --- 入力チェック ---
+            if (BASE_STRING.length === 0) {
+                outputDiv.textContent = "⚠️ 元の文字列が空です。文字を入力してください。";
                 return;
             }
 
-            // ペア生成のための配列
+            if (isNaN(N) || N < 1) {
+                outputDiv.textContent = "⚠️ 有効な正の整数 (ペアの文字数) を入力してください。";
+                return;
+            }
+            // --------------------
+
             const pairs = [];
             const strLength = BASE_STRING.length;
+
+            // N文字のペアが生成できるかチェック
+            if (N > strLength) {
+                outputDiv.textContent = `⚠️ 元の文字列 (${strLength}文字) は、指定された文字数 (${N}) よりも短いため、ペアを生成できません。`;
+                return;
+            }
 
             // 文字列のインデックス i から N 文字分のペアを生成する
             // 最後のペアの開始インデックスは strLength - N
             for (let i = 0; i <= strLength - N; i++) {
-                // 文字列の i 番目から N 文字を切り出す (重複なしの連続ペア)
+                // 文字列の i 番目から N 文字を切り出す (連続ペア)
                 const pair = BASE_STRING.substring(i, i + N);
                 pairs.push(pair);
-            }
-
-            if (pairs.length === 0) {
-                outputDiv.textContent = `⚠️ 文字列が短すぎます。${N}文字のペアは生成できません。`;
-                return;
             }
 
             // 結果を出力 (スペース区切りで整形)

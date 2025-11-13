@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>拡張文字列ペアジェネレーター</title>
+    <title>組み合わせペアジェネレーター</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,30 +13,32 @@
             margin-top: 15px;
             padding: 10px;
             border: 1px solid #ccc;
-            white-space: pre-wrap; /* 改行を保持 */
+            white-space: pre-wrap;
             background-color: #f9f9f9;
         }
-        input[type="text"], input[type="number"] {
+        input[type="text"] {
             padding: 8px;
             margin-right: 10px;
-            width: 90%; /* 文字列入力用 */
+            width: 90%;
             box-sizing: border-box;
             margin-bottom: 10px;
         }
         input[type="number"] {
-            width: 100px; /* 文字数入力用 */
+            padding: 8px;
+            width: 100px;
             text-align: right;
+            margin-bottom: 10px;
         }
         button {
             padding: 8px 15px;
             cursor: pointer;
-            background-color: #007bff;
+            background-color: #d9534f; /* 赤系に変更 */
             color: white;
             border: none;
             border-radius: 4px;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #c9302c;
         }
         .input-group {
             margin-bottom: 20px;
@@ -50,71 +52,94 @@
 </head>
 <body>
 
-    <h1>文字列ペアジェネレーター</h1>
+    <h1>組み合わせペアジェネレーター</h1>
 
     <div class="input-group">
-        <label for="baseString">1. 元の文字列を入力してください:</label>
-        <input type="text" id="baseString" value="qwertyuiopasdfghjklzxcvbnm">
+        <label for="baseString">1. 元の文字列を入力してください (重複しない文字を使用):</label>
+        <input type="text" id="baseString" value="qwrtypsdfghjklzxcvbm">
     </div>
 
     <div class="input-group">
-        <label for="pairLength">2. 生成したい連続ペアの文字数を入力してください (例: 2):</label>
-        <input type="number" id="pairLength" value="2" min="1">
+        <label for="pairLength">2. ペアの文字数 (組み合わせ数) を入力してください (例: 3):</label>
+        <input type="number" id="pairLength" value="3" min="1">
     </div>
 
-    <button onclick="generatePairs()">ペアを生成</button>
+    <button onclick="generateCombinations()">組み合わせを生成</button>
 
     ---
 
-    <h2>結果</h2>
+    <h2>結果 (<span id="count">0</span> 件)</h2>
     <div id="output"></div>
 
     <script>
         const outputDiv = document.getElementById('output');
+        const countSpan = document.getElementById('count');
 
-        function generatePairs() {
-            // ユーザーが入力した元の文字列を取得
-            const BASE_STRING = document.getElementById('baseString').value.trim();
-            
-            // 入力値を取得し、数値に変換
-            const pairLengthInput = document.getElementById('pairLength');
-            const N = parseInt(pairLengthInput.value, 10);
-
-            // --- 入力チェック ---
-            if (BASE_STRING.length === 0) {
-                outputDiv.textContent = "⚠️ 元の文字列が空です。文字を入力してください。";
+        /**
+         * 再帰的に組み合わせを生成する関数 (Combination: 順序を考慮せず選ぶ)
+         * @param {string[]} chars - 元の文字配列
+         * @param {number} k - 選び出す文字数
+         * @param {number} start_index - 探索を開始するインデックス
+         * @param {string[]} current_combination - 現在作成中の組み合わせ
+         * @param {string[]} result - 結果を格納する配列
+         */
+        function combine(chars, k, start_index, current_combination, result) {
+            // k個の文字を選び終わったら、結果に追加して終了
+            if (current_combination.length === k) {
+                result.push(current_combination.join(''));
                 return;
             }
 
+            // 残りの文字から選ぶ
+            for (let i = start_index; i < chars.length; i++) {
+                // i番目の文字を選び、次の文字を探す
+                current_combination.push(chars[i]);
+                
+                // 次の文字は i+1 から探す (これにより重複がなく、順序も考慮しない組み合わせになる)
+                combine(chars, k, i + 1, current_combination, result);
+                
+                // バックトラック: i番目の文字を選ばなかった場合を試すために、元に戻す
+                current_combination.pop();
+            }
+        }
+
+        function generateCombinations() {
+            const BASE_STRING_RAW = document.getElementById('baseString').value.trim();
+            const N = parseInt(document.getElementById('pairLength').value, 10);
+            
+            // 元の文字列を配列にし、重複を排除（念のため）
+            const BASE_CHARS = [...new Set(BASE_STRING_RAW.split(''))];
+            const strLength = BASE_CHARS.length;
+            const combinations = [];
+
+            // --- 入力チェック ---
+            if (BASE_CHARS.length === 0) {
+                outputDiv.textContent = "⚠️ 元の文字列が空です。文字を入力してください。";
+                countSpan.textContent = "0";
+                return;
+            }
             if (isNaN(N) || N < 1) {
                 outputDiv.textContent = "⚠️ 有効な正の整数 (ペアの文字数) を入力してください。";
+                countSpan.textContent = "0";
+                return;
+            }
+            if (N > strLength) {
+                outputDiv.textContent = `⚠️ 元の文字列 (${strLength}文字) は、指定された文字数 (${N}) よりも短いため、組み合わせを生成できません。`;
+                countSpan.textContent = "0";
                 return;
             }
             // --------------------
 
-            const pairs = [];
-            const strLength = BASE_STRING.length;
-
-            // N文字のペアが生成できるかチェック
-            if (N > strLength) {
-                outputDiv.textContent = `⚠️ 元の文字列 (${strLength}文字) は、指定された文字数 (${N}) よりも短いため、ペアを生成できません。`;
-                return;
-            }
-
-            // 文字列のインデックス i から N 文字分のペアを生成する
-            // 最後のペアの開始インデックスは strLength - N
-            for (let i = 0; i <= strLength - N; i++) {
-                // 文字列の i 番目から N 文字を切り出す (連続ペア)
-                const pair = BASE_STRING.substring(i, i + N);
-                pairs.push(pair);
-            }
+            // 組み合わせ生成関数を実行
+            combine(BASE_CHARS, N, 0, [], combinations);
 
             // 結果を出力 (スペース区切りで整形)
-            outputDiv.textContent = pairs.join(' ');
+            outputDiv.textContent = combinations.join(' ');
+            countSpan.textContent = combinations.length.toLocaleString();
         }
 
-        // ページロード時に一度実行して初期値を表示
-        generatePairs();
+        // ページロード時に一度実行
+        generateCombinations();
     </script>
 
 </body>
